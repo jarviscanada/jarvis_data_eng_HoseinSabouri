@@ -7,45 +7,42 @@ db_password=$3
 
 sudo systemctl status docker || systemctl start docker
 docker container inspect jrvs-psql
-container_status=$?
-
+container_status=$(docker container ls -a -f name=jrvs-psql | wc -l)
 case $cmd in
-./scripts/psql_docker.sh create db_username db_password)
-if [ $2=0 || $3=0 ];then
-echo 'error'
-exit 1
-fi
+
+ create)
+
+ if [ $container_status -eq 2 ]; then
+		echo "Container already exists"
+		exit 1
+	fi
+
+ if [ $# -ne 3 ]; then
+    echo "Create requires username and password,please follow this format"
+    echo "[Bash_File] create [user_name] [password]"
+    exit 1
+  fi
+
+  docker volume create pgdata
+  	docker run --name jrvs-psql -e POSTGRES_PASSWORD=${db_password} -e POSTGRES_USER=${db_username} -d -v pgdata:/var/lib/postgresql/data -p 5432:5432 postgres:9.6-alpine
+  	exit $?
 
 
-if [$container_status -eq 0 ]; then
-echo 'Container already exit'
-exit 1
-fi
+  if [ $container_status -lt 2 ]; then
+     echo "Container does not exist"
+     exit 1
+   fi
 
+  docker container $cmd jrvs-psql
+  	exit $?
+  	;;
 
-if [ $# -ne 3 ]; then
-echo 'create requires username and password'
-exit 1
-fi
+    *)
+  	echo 'Illegal command'
+  	echo 'Commands: start|stop|create'
+  	exit 1
+  	;;
+  esac
+  exit 0
 
-docker volume create --name myvolume
-docker run --name jrvs-psql
-exit $?
-,,
-
-
-if [$container_status -eq 0 ]; then 
-exit 1
-fi
-
-docker container $cmd jrvs-psql
-exit $?
-,,
-
-
-
-echo 'Illegal command'
-echo "commands: start\stop\create'
-exit 1
-,,
 
